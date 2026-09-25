@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A6B4F">
+<title>Medical Store Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<script defer src="xlsx.full.min.js"></script>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --bg:#EEF3F1; --surface:#FFFFFF; --ink:#10201B; --muted:#5A6B65; --line:#D5E0DB;
+  --green:#0A6B4F; --green-ink:#FFFFFF; --mint:#DCEFE7;
+  --amber:#8F5500; --amber-bg:#FFEFCC; --red:#B3261E; --red-bg:#FCE4E2;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0C1512; --surface:#15201C; --ink:#E4EEEA; --muted:#94A7A1; --line:#27342F;
+    --green:#3DBA8C; --green-ink:#05221A; --mint:#16362B;
+    --amber:#F2B04A; --amber-bg:#3A2A0E; --red:#F07A70; --red-bg:#3D1715;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0C1512; --surface:#15201C; --ink:#E4EEEA; --muted:#94A7A1; --line:#27342F;
+  --green:#3DBA8C; --green-ink:#05221A; --mint:#16362B;
+  --amber:#F2B04A; --amber-bg:#3A2A0E; --red:#F07A70; --red-bg:#3D1715;
+  color-scheme:dark;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%}
+.num{font-variant-numeric:tabular-nums}
+img{max-width:100%}
+.app{max-width:640px;margin:0 auto;padding:0 16px calc(104px + env(safe-area-inset-bottom,0px))}
+header.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:16px 0 6px}
+header .shop{font-size:20px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header .date{color:var(--muted);font-size:14px;white-space:nowrap}
+
+/* Today's slip: the one bold element */
+.slip{background:var(--green);color:var(--green-ink);border-radius:14px 14px 0 0;padding:18px 18px 20px;position:relative;margin:10px 0 8px}
+.slip::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:8px;background:radial-gradient(circle at 8px 8px,var(--bg) 5.5px,var(--green) 6px) repeat-x;background-size:16px 8px}
+.slip .label{font-size:15px;opacity:.88}
+.slip .big{font-size:44px;font-weight:700;letter-spacing:-.5px;line-height:1.1;margin:2px 0 4px;word-break:break-word}
+.slip .row{display:flex;gap:28px;margin-top:10px;flex-wrap:wrap}
+.slip .row span{display:block;font-size:13px;opacity:.82}
+.slip .row b{font-size:19px}
+
+h2{font-size:17px;margin:24px 0 8px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2 .panel{margin-top:0}
+.stat .k{color:var(--muted);font-size:13px}
+.stat .v{font-size:20px;font-weight:700;margin-top:2px;word-break:break-word}
+.hint{color:var(--muted);font-size:14px;margin:10px 2px}
+.empty{text-align:center;color:var(--muted);padding:28px 12px}
+
+.alert-row{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 0;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.alert-row:first-child{border-top:0;padding-top:2px}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700;white-space:nowrap}
+.pill.red{background:var(--red-bg);color:var(--red)}
+.pill.amber{background:var(--amber-bg);color:var(--amber)}
+.pill.green{background:var(--mint);color:var(--green)}
+
+.field{display:block;margin-bottom:12px}
+.field>span{display:block;font-size:14px;color:var(--muted);margin-bottom:4px}
+input,select{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);min-height:46px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.search{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:10px 0 8px;z-index:5}
+.search input[type=search]{font-size:17px}
+
+.btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:11px 16px;min-height:46px;cursor:pointer;background:var(--green);color:var(--green-ink)}
+.btn.ghost{background:transparent;color:var(--green);border:1px solid var(--line)}
+.btn.danger{background:var(--red-bg);color:var(--red)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btns .btn{flex:1 1 140px}
+
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.item:disabled{opacity:.55;cursor:not-allowed}
+.item .name{font-weight:700;word-break:break-word}
+.item .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.item .right{text-align:right;white-space:nowrap}
+.item>div:first-child{min-width:0}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;white-space:nowrap;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.cart-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.cart-line:first-child{border-top:0;padding-top:0}
+.cart-line .name{font-weight:700;word-break:break-word}
+.cart-line .sub{color:var(--muted);font-size:13px}
+.qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;flex:none}
+.qty button{width:38px;height:40px;border:0;background:none;font-size:20px;color:var(--ink);cursor:pointer}
+.qty input{width:48px;text-align:center;border:0;padding:0;min-height:40px;border-radius:0}
+.totals{margin-top:6px}
+.totals>div{display:flex;justify-content:space-between;padding:4px 0}
+.totals .grand{font-size:20px;font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+.totals .profit{color:var(--green);font-weight:700}
+
+.kv{display:grid;grid-template-columns:1fr auto;gap:8px 12px;margin:6px 0 4px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;text-align:right;font-weight:700}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:400;font-size:13px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:20}
+nav.tabs .inner{display:flex;max-width:640px;margin:0 auto}
+nav.tabs button{flex:1;background:none;border:0;font:inherit;font-size:12px;color:var(--muted);padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+nav.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-current="page"]{color:var(--green);font-weight:700}
+
+.fab{position:fixed;right:max(16px,calc(50vw - 304px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:15;border-radius:999px;padding:12px 20px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+.fab[hidden]{display:none}
+
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:30;display:none}
+.backdrop.open{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;max-height:90vh;overflow:auto;background:var(--surface);border-radius:16px 16px 0 0;z-index:31;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .22s ease;visibility:hidden}
+.sheet.open{transform:none;visibility:visible}
+.sheet h3{margin:0 0 4px;font-size:20px;padding-right:44px;word-break:break-word}
+.sheet .x{position:absolute;right:10px;top:10px;width:40px;height:40px;border:0;background:none;color:var(--muted);font-size:26px;cursor:pointer}
+.sheet .sub{color:var(--muted);font-size:14px;margin-bottom:10px}
+@media (prefers-reduced-motion: reduce){.sheet{transition:none}}
+
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:15px;z-index:40;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;text-align:center}
+#toast.show{opacity:1}
+.danger-zone{border-color:var(--red-bg)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="shop" id="shopName">My Medical Store</div>
+    <div class="date" id="today"></div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<button id="fab" class="btn fab" onclick="openMedForm()" hidden>+ Add medicine</button>
+
+<nav class="tabs" aria-label="Main">
+  <div class="inner">
+    <button data-tab="home" onclick="go('home')"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</button>
+    <button data-tab="sell" onclick="go('sell')"><svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h11L21 7H6"/><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></svg>Sell</button>
+    <button data-tab="stock" onclick="go('stock')"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V4h8v3M12 11v5M9.5 13.5h5"/></svg>Stock</button>
+    <button data-tab="sales" onclick="go('sales')"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Profit</button>
+    <button data-tab="more" onclick="go('more')"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>More</button>
+  </div>
+</nav>
+
+<div class="backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true">
+  <button class="x" aria-label="Close" onclick="closeSheet()">×</button>
+  <div id="sheetBody"></div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="importInput" accept=".xlsx,.xls,.csv" hidden onchange="importFile(this)">
+<input type="file" id="restoreInput" accept=".json,application/json" hidden onchange="restoreBackup(this)">
+
+<script>
+const KEY='medstore-v1';
+const DAY=86400000;
+const TYPES=['Tablet','Capsule','Syrup','Injection','Drops','Cream / Ointment','Inhaler','Sachet','Surgical','Other'];
+let S=blank();
+let tab='home';
+let stockFilter='all', stockQuery='';
+let sellQuery='', cart=[], discount=0;
+let salesRange='today';
+
+/* ---------- storage (IndexedDB, large space) ---------- */
+function blank(){return {meds:[],sales:[],billNo:0,settings:{shop:'My Medical Store',expiryDays:90,lowDefault:10}}}
+function normalize(d){const b=blank();if(!d)return b;return {meds:Array.isArray(d.meds)?d.meds:[],sales:Array.isArray(d.sales)?d.sales:[],billNo:d.billNo||0,settings:Object.assign(b.settings,d.settings||{})}}
+const DB_NAME='medstore',STORE='kv';
+let dbp=null,useIDB=('indexedDB' in window);
+function getDB(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))}
+async function idbGet(k){const db=await getDB();return new Promise((res,rej)=>{const q=db.transaction(STORE,'readonly').objectStore(STORE).get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+async function idbSet(k,v){const db=await getDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);tx.onabort=()=>rej(tx.error)})}
+let saving=Promise.resolve();
+function save(){
+  const snap=JSON.parse(JSON.stringify(S));
+  if(useIDB){saving=saving.then(()=>idbSet('state',snap)).catch(()=>toast('Could not save on this device. Download a backup from More.'));return true}
+  try{localStorage.setItem(KEY,JSON.stringify(snap));return true}catch(e){toast('Could not save on this device. Download a backup from More.');return false}
+}
+async function init(){
+  let d=null,migrated=false;
+  if(useIDB){try{d=await idbGet('state')}catch(e){useIDB=false}}
+  if(!d){try{const r=localStorage.getItem(KEY);if(r){d=JSON.parse(r);migrated=useIDB}}catch(e){}}
+  S=normalize(d);
+  if(migrated){save();try{await saving;localStorage.removeItem(KEY)}catch(e){}}
+  render();
+}
+async function showStorage(){
+  const el=$('#storageUse');if(!el||!navigator.storage||!navigator.storage.estimate)return;
+  try{const e=await navigator.storage.estimate();el.textContent=`This app is using ${(e.usage/1048576).toFixed(1)} MB on this phone.`}catch(e){}
+}
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function num(v){if(typeof v==='number')return isFinite(v)?v:0;const n=parseFloat(String(v??'').replace(/[^0-9.\-]/g,''));return isFinite(n)?n:0}
+function r3(n){return Math.round(n*1000)/1000}
+function money(n){return 'Rs '+(Math.round(n*100)/100).toLocaleString('en-US',{maximumFractionDigits:2})}
+function qtyFmt(n){return (Math.round(n*100)/100).toLocaleString('en-US',{maximumFractionDigits:2})}
+function str(v){return String(v??'').trim()}
+function pad(n){return String(n).padStart(2,'0')}
+function dkey(ts){const d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function startOfDay(ts){const d=new Date(ts);d.setHours(0,0,0,0);return d.getTime()}
+function sum(a,f){return a.reduce((t,x)=>t+f(x),0)}
+function byName(a,b){return a.name.localeCompare(b.name)}
+function daysLeft(exp){if(!exp)return null;const t=new Date(exp+'T00:00:00').getTime();if(isNaN(t))return null;return Math.round((t-startOfDay(Date.now()))/DAY)}
+function expStatus(m){const d=daysLeft(m.expiry);if(d===null)return 'none';if(d<0)return 'expired';if(d<=S.settings.expiryDays)return 'soon';return 'ok'}
+function minOf(m){return (m.min===undefined||m.min===null||m.min==='')?S.settings.lowDefault:m.min}
+function isLow(m){return m.qty>0&&m.qty<=minOf(m)}
+function fmtDate(exp){if(!exp)return '';const d=new Date(exp+'T00:00:00');if(isNaN(d))return exp;return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
+function fmtTime(ts){return new Date(ts).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}
+function fmtDay(ts){return new Date(ts).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3200)}
+function matches(m,q){q=q.trim().toLowerCase();if(!q)return true;return [m.name,m.generic,m.company,m.batch].some(x=>String(x||'').toLowerCase().includes(q))}
+function soldQty(medId,days){const from=Date.now()-days*DAY;let q=0;S.sales.forEach(s=>{if(s.ts>=from)s.items.forEach(i=>{if(i.medId===medId)q+=i.qty})});return q}
+function rangeBounds(r){
+  const now=Date.now(),t0=startOfDay(now),d=new Date(now);
+  if(r==='today')return [t0,t0+DAY];
+  if(r==='yesterday')return [t0-DAY,t0];
+  if(r==='week')return [t0-6*DAY,t0+DAY];
+  if(r==='month')return [new Date(d.getFullYear(),d.getMonth(),1).getTime(),t0+DAY];
+  if(r==='lastmonth')return [new Date(d.getFullYear(),d.getMonth()-1,1).getTime(),new Date(d.getFullYear(),d.getMonth(),1).getTime()];
+  return [0,Infinity];
+}
+function salesBetween(a,b){return S.sales.filter(s=>s.ts>=a&&s.ts<b)}
+function statusBadge(m){
+  if(m.qty<=0)return '<span class="pill red">Out of stock</span>';
+  const e=expStatus(m);
+  if(e==='expired')return '<span class="pill red">Expired</span>';
+  let out='';
+  if(isLow(m))out+='<span class="pill amber">Low</span> ';
+  if(e==='soon'){const d=daysLeft(m.expiry);out+=`<span class="pill amber">Expires in ${d} day${d===1?'':'s'}</span>`}
+  return out;
+}
+
+/* ---------- navigation ---------- */
+function go(t,opts){tab=t;if(opts&&opts.filter){stockFilter=opts.filter;stockQuery=''}closeSheet();render();window.scrollTo(0,0)}
+function render(){
+  document.querySelectorAll('nav.tabs button').forEach(b=>{if(b.dataset.tab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  $('#shopName').textContent=S.settings.shop;
+  $('#today').textContent=new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  const v=$('#view');
+  ({home:renderHome,sell:renderSell,stock:renderStock,sales:renderSales,more:renderMore})[tab](v);
+  $('#fab').hidden=tab!=='stock';
+}
+
+/* ---------- home ---------- */
+function renderHome(v){
+  const [a,b]=rangeBounds('today');const today=salesBetween(a,b);
+  const [ma,mb]=rangeBounds('month');const month=salesBetween(ma,mb);
+  const stockCost=sum(S.meds,m=>Math.max(m.qty,0)*m.cost), stockSale=sum(S.meds,m=>Math.max(m.qty,0)*m.price);
+  const units=sum(S.meds,m=>Math.max(m.qty,0));
+  const low=S.meds.filter(isLow).length, out=S.meds.filter(m=>m.qty<=0).length;
+  const soon=S.meds.filter(m=>m.qty>0&&expStatus(m)==='soon').length, expired=S.meds.filter(m=>m.qty>0&&expStatus(m)==='expired').length;
+  const row=(label,n,f,cls)=>`<button class="alert-row" onclick="go('stock',{filter:'${f}'})"><span>${label}</span><span class="pill ${n?cls:'green'} num">${n}</span></button>`;
+  const recent=[...S.sales].sort((x,y)=>y.ts-x.ts).slice(0,5);
+  v.innerHTML=`
+  <section class="slip" aria-label="Today">
+    <div class="label">Today's profit</div>
+    <div class="big num">${money(sum(today,s=>s.profit))}</div>
+    <div class="row">
+      <div><span>Sale</span><b class="num">${money(sum(today,s=>s.total))}</b></div>
+      <div><span>Bills</span><b class="num">${today.length}</b></div>
+      <div><span>This month profit</span><b class="num">${money(sum(month,s=>s.profit))}</b></div>
+    </div>
+  </section>
+  <button class="btn block" style="margin-top:20px" onclick="go('sell')">New sale</button>
+  ${!S.meds.length?`<div class="panel" style="margin-top:16px"><b>Start by adding your medicines</b><p class="hint" style="margin:6px 0 0">Add them one by one, or upload your stock sheet from Excel.</p><div class="btns"><button class="btn" onclick="go('stock');openMedForm()">Add medicine</button><button class="btn ghost" onclick="go('more')">Import from Excel</button></div></div>`:''}
+  <h2>Stock right now</h2>
+  <div class="grid2">
+    <div class="panel stat"><div class="k">Stock value at purchase price</div><div class="v num">${money(stockCost)}</div></div>
+    <div class="panel stat"><div class="k">Stock value at sale price</div><div class="v num">${money(stockSale)}</div></div>
+    <div class="panel stat"><div class="k">Medicines</div><div class="v num">${S.meds.length}</div></div>
+    <div class="panel stat"><div class="k">Total units</div><div class="v num">${qtyFmt(units)}</div></div>
+  </div>
+  <h2>Needs attention</h2>
+  <div class="panel">
+    ${row('Low stock',low,'low','amber')}
+    ${row('Out of stock',out,'out','red')}
+    ${row(`Expiring in ${S.settings.expiryDays} days`,soon,'soon','amber')}
+    ${row('Expired, still in stock',expired,'expired','red')}
+  </div>
+  <h2>Recent bills</h2>
+  ${recent.length?recent.map(billItem).join(''):'<p class="hint">No sales yet. Bills you complete will show here.</p>'}`;
+}
+function billItem(s){
+  const n=s.items.length;
+  return `<button class="item" onclick="openBill('${s.id}')"><div><div class="name">Bill #${s.no}</div><div class="sub">${fmtDay(s.ts)}, ${fmtTime(s.ts)}. ${n} item${n===1?'':'s'}</div></div><div class="right"><div class="num"><b>${money(s.total)}</b></div><div class="sub num">Profit ${money(s.profit)}</div></div></button>`;
+}
+
+/* ---------- sell ---------- */
+function renderSell(v){
+  v.innerHTML=`<div class="search"><input id="sellQ" type="search" placeholder="Search medicine to sell" aria-label="Search medicine to sell" value="${esc(sellQuery)}" autocomplete="off" oninput="sellQuery=this.value;updateSellResults()"></div>
+  <div id="sellResults"></div>
+  <h2>Bill</h2>
+  <div class="panel" id="cartBox"></div>`;
+  updateSellResults();updateCart();
+}
+function updateSellResults(){
+  const box=$('#sellResults');if(!box)return;
+  if(!S.meds.length){box.innerHTML=`<div class="empty">No medicines in stock yet.<br><button class="btn" style="margin-top:12px" onclick="go('stock');openMedForm()">Add medicine</button></div>`;return}
+  if(!sellQuery.trim()){box.innerHTML='<p class="hint">Type a medicine name, formula or company.</p>';return}
+  const list=S.meds.filter(m=>matches(m,sellQuery)).sort(byName).slice(0,25);
+  if(!list.length){box.innerHTML=`<p class="hint">No medicine matches “${esc(sellQuery)}”.</p>`;return}
+  box.innerHTML=list.map(m=>{
+    const inCart=cart.find(c=>c.id===m.id);const out=m.qty<=0;
+    const sub=[m.generic,m.company].filter(Boolean).join(', ');
+    return `<button class="item" ${out?'disabled':''} onclick="addToCart('${m.id}')">
+      <div><div class="name">${esc(m.name)}</div>${sub?`<div class="sub">${esc(sub)}</div>`:''}${expStatus(m)==='expired'?'<div class="sub"><span class="pill red">Expired</span></div>':''}</div>
+      <div class="right"><div class="num"><b>${money(m.price)}</b></div><div class="sub num">${out?'Out of stock':qtyFmt(m.qty)+' in stock'}</div>${inCart?`<div class="sub num" style="color:var(--green)">In bill: ${qtyFmt(inCart.qty)}</div>`:''}</div></button>`;
+  }).join('');
+}
+function addToCart(id){
+  const m=S.meds.find(x=>x.id===id);if(!m||m.qty<=0)return;
+  const c=cart.find(x=>x.id===id);
+  if(!c&&expStatus(m)==='expired'&&!confirm(m.name+' is expired. Add it to the bill anyway?'))return;
+  if(c){if(c.qty+1>m.qty){toast('Only '+qtyFmt(m.qty)+' in stock');return}c.qty=r3(c.qty+1)}
+  else cart.push({id,qty:Math.min(1,m.qty)});
+  updateCart();updateSellResults();
+}
+function cartCalc(){
+  let sub=0,cost=0;const lines=[];
+  cart.forEach(c=>{const m=S.meds.find(x=>x.id===c.id);if(!m)return;sub+=c.qty*m.price;cost+=c.qty*m.cost;lines.push({c,m})});
+  const d=Math.min(Math.max(num(discount),0),sub);
+  return {lines,sub,cost,d,total:sub-d,profit:sub-cost-d};
+}
+function updateCart(){
+  const box=$('#cartBox');if(!box)return;const k=cartCalc();
+  if(!k.lines.length){box.innerHTML='<p class="hint" style="margin:0">Tap a medicine above to add it to the bill.</p>';return}
+  box.innerHTML=k.lines.map(({c,m})=>`<div class="cart-line"><div style="flex:1;min-width:0"><div class="name">${esc(m.name)}</div><div class="sub num">${money(m.price)} each</div></div>
+    <div class="qty"><button aria-label="One less" onclick="cartQty('${m.id}',-1)">−</button><input class="num" inputmode="decimal" value="${qtyFmt(c.qty)}" aria-label="Quantity of ${esc(m.name)}" onchange="cartSet('${m.id}',this.value)"><button aria-label="One more" onclick="cartQty('${m.id}',1)">+</button></div>
+    <div class="num" style="min-width:74px;text-align:right"><b>${money(c.qty*m.price)}</b></div></div>`).join('')+
+  `<label class="field" style="margin-top:14px"><span>Discount on bill (Rs)</span><input class="num" inputmode="decimal" value="${discount||''}" placeholder="0" onchange="discount=num(this.value);updateCart()"></label>
+  <div class="totals">
+    <div><span>Subtotal</span><b class="num">${money(k.sub)}</b></div>
+    ${k.d?`<div><span>Discount</span><b class="num">− ${money(k.d)}</b></div>`:''}
+    <div class="grand"><span>Total</span><span class="num">${money(k.total)}</span></div>
+    <div class="profit"><span>Profit on this bill</span><span class="num">${money(k.profit)}</span></div>
+  </div>
+  <div class="btns"><button class="btn ghost" style="flex:0 0 auto" onclick="clearCart()">Clear</button><button class="btn" onclick="completeSale()">Complete sale</button></div>`;
+}
+function cartQty(id,d){
+  const c=cart.find(x=>x.id===id),m=S.meds.find(x=>x.id===id);if(!c||!m)return;
+  const n=r3(c.qty+d);
+  if(n<=0)cart=cart.filter(x=>x.id!==id);
+  else if(n>m.qty){toast('Only '+qtyFmt(m.qty)+' in stock');return}
+  else c.qty=n;
+  updateCart();updateSellResults();
+}
+function cartSet(id,v){
+  const c=cart.find(x=>x.id===id),m=S.meds.find(x=>x.id===id);if(!c||!m)return;
+  const n=r3(num(v));
+  if(n<=0)cart=cart.filter(x=>x.id!==id);
+  else if(n>m.qty){c.qty=m.qty;toast('Only '+qtyFmt(m.qty)+' in stock')}
+  else c.qty=n;
+  updateCart();updateSellResults();
+}
+function clearCart(){cart=[];discount=0;updateCart();updateSellResults()}
+function completeSale(){
+  const k=cartCalc();if(!k.lines.length)return;
+  for(const {c,m} of k.lines){if(c.qty>m.qty){toast(m.name+': only '+qtyFmt(m.qty)+' in stock');return}}
+  S.billNo=(S.billNo||0)+1;
+  const sale={id:uid(),no:S.billNo,ts:Date.now(),items:k.lines.map(({c,m})=>({medId:m.id,name:m.name,qty:c.qty,cost:m.cost,price:m.price})),sub:k.sub,discount:k.d,total:k.total,profit:k.profit};
+  k.lines.forEach(({c,m})=>{m.qty=r3(m.qty-c.qty)});
+  S.sales.push(sale);save();
+  cart=[];discount=0;sellQuery='';
+  render();
+  toast('Bill #'+sale.no+' saved. Profit '+money(sale.profit));
+}
+
+/* ---------- stock ---------- */
+const FILTERS=[['all','All'],['low','Low stock'],['out','Out of stock'],['soon','Expiring soon'],['expired','Expired']];
+function renderStock(v){
+  v.innerHTML=`<div class="search"><input type="search" placeholder="Search by name, formula, company" aria-label="Search stock" value="${esc(stockQuery)}" autocomplete="off" oninput="stockQuery=this.value;updateStockList()">
+  <div class="chips" role="group" aria-label="Filter stock">${FILTERS.map(([k,l])=>`<button class="chip" aria-pressed="${stockFilter===k}" onclick="stockFilter='${k}';renderStock($('#view'))">${l}</button>`).join('')}</div></div>
+  <p class="hint num" id="stockSummary"></p><div id="stockList"></div>`;
+  updateStockList();
+}
+function filterMed(m){
+  switch(stockFilter){
+    case 'low':return isLow(m);
+    case 'out':return m.qty<=0;
+    case 'soon':return m.qty>0&&expStatus(m)==='soon';
+    case 'expired':return m.qty>0&&expStatus(m)==='expired';
+    default:return true;
+  }
+}
+function updateStockList(){
+  const box=$('#stockList');if(!box)return;
+  const list=S.meds.filter(m=>filterMed(m)&&matches(m,stockQuery));
+  if(stockFilter==='soon'||stockFilter==='expired')list.sort((a,b)=>(daysLeft(a.expiry)??1e9)-(daysLeft(b.expiry)??1e9));else list.sort(byName);
+  $('#stockSummary').textContent=list.length?`${list.length} medicine${list.length===1?'':'s'}, worth ${money(sum(list,m=>Math.max(m.qty,0)*m.cost))} at purchase price`:'';
+  if(!S.meds.length){box.innerHTML='<div class="empty">Your stock list is empty.<br>Tap “Add medicine”, or import an Excel sheet from More.</div>';return}
+  if(!list.length){box.innerHTML='<div class="empty">Nothing here. Try another filter or search.</div>';return}
+  box.innerHTML=list.map(m=>{
+    const sub=[m.generic,m.company].filter(Boolean).join(', ');
+    const exp=m.expiry?`Exp ${fmtDate(m.expiry)}`:'';
+    return `<button class="item" onclick="openMed('${m.id}')"><div><div class="name">${esc(m.name)}</div><div class="sub">${esc([sub,exp].filter(Boolean).join('. '))}</div><div class="sub">${statusBadge(m)}</div></div>
+    <div class="right"><div class="num"><b>${qtyFmt(Math.max(m.qty,0))}</b> left</div><div class="sub num">${money(m.price)} each</div></div></button>`;
+  }).join('');
+}
+function openMed(id){
+  const m=S.meds.find(x=>x.id===id);if(!m)return;
+  const unitProfit=m.price-m.cost, margin=m.price?unitProfit/m.price*100:0;
+  const d=daysLeft(m.expiry);
+  openSheet(`<h3>${esc(m.name)}</h3><div class="sub">${esc([m.type,m.generic,m.company].filter(Boolean).join(', '))}</div>
+  <div>${statusBadge(m)}</div>
+  <dl class="kv num">
+    <dt>In stock</dt><dd>${qtyFmt(m.qty)}</dd>
+    <dt>Purchase price</dt><dd>${money(m.cost)}</dd>
+    <dt>Sale price</dt><dd>${money(m.price)}</dd>
+    <dt>Profit per unit</dt><dd>${money(unitProfit)} (${margin.toFixed(1)}%)</dd>
+    <dt>Stock value</dt><dd>${money(Math.max(m.qty,0)*m.cost)}</dd>
+    <dt>Sold in last 30 days</dt><dd>${qtyFmt(soldQty(m.id,30))}</dd>
+    <dt>Low stock alert at</dt><dd>${qtyFmt(minOf(m))}</dd>
+    ${m.batch?`<dt>Batch</dt><dd>${esc(m.batch)}</dd>`:''}
+    ${m.expiry?`<dt>Expiry</dt><dd>${fmtDate(m.expiry)}${d!==null?(d<0?' (expired)':` (${d} days)`):''}</dd>`:''}
+    ${m.rack?`<dt>Rack</dt><dd>${esc(m.rack)}</dd>`:''}
+  </dl>
+  <div class="btns"><button class="btn" onclick="openAddStock('${m.id}')">Add stock</button><button class="btn ghost" onclick="openMedForm('${m.id}')">Edit</button></div>
+  <button class="btn danger block" style="margin-top:10px" onclick="deleteMed('${m.id}')">Delete medicine</button>`);
+}
+function medFields(m){
+  m=m||{};const v=k=>esc(m[k]??'');
+  return `<label class="field"><span>Medicine name *</span><input name="name" required value="${v('name')}" autofocus></label>
+  <div class="row2"><label class="field"><span>Formula</span><input name="generic" value="${v('generic')}" placeholder="e.g. Paracetamol"></label>
+  <label class="field"><span>Company</span><input name="company" value="${v('company')}"></label></div>
+  <div class="row2"><label class="field"><span>Type</span><select name="type">${TYPES.map(t=>`<option ${(m.type||'Tablet')===t?'selected':''}>${t}</option>`).join('')}</select></label>
+  <label class="field"><span>Rack / shelf</span><input name="rack" value="${v('rack')}"></label></div>
+  <div class="row2"><label class="field"><span>Purchase price per unit *</span><input name="cost" class="num" inputmode="decimal" required value="${m.cost??''}"></label>
+  <label class="field"><span>Sale price per unit *</span><input name="price" class="num" inputmode="decimal" required value="${m.price??''}"></label></div>
+  <div class="row2"><label class="field"><span>Quantity in stock</span><input name="qty" class="num" inputmode="decimal" value="${m.qty??''}" placeholder="0"></label>
+  <label class="field"><span>Alert when below</span><input name="min" class="num" inputmode="decimal" value="${m.min??S.settings.lowDefault}"></label></div>
+  <div class="row2"><label class="field"><span>Batch no.</span><input name="batch" value="${v('batch')}"></label>
+  <label class="field"><span>Expiry date</span><input name="expiry" type="date" value="${v('expiry')}"></label></div>
+  <p class="hint" style="margin-top:0">A unit is whatever you sell by: one tablet, one strip, or one bottle.</p>`;
+}
+function openMedForm(id){
+  const m=id?S.meds.find(x=>x.id===id):null;
+  openSheet(`<h3>${m?'Edit medicine':'Add medicine'}</h3><form onsubmit="return saveMed(event,'${m?m.id:''}')">${medFields(m)}<button class="btn block" type="submit">${m?'Save changes':'Add medicine'}</button></form>`);
+}
+function saveMed(e,id){
+  e.preventDefault();const f=new FormData(e.target);
+  const rec={name:str(f.get('name')),generic:str(f.get('generic')),company:str(f.get('company')),type:str(f.get('type')),rack:str(f.get('rack')),cost:num(f.get('cost')),price:num(f.get('price')),qty:r3(num(f.get('qty'))),min:num(f.get('min')),batch:str(f.get('batch')),expiry:str(f.get('expiry'))};
+  if(!rec.name){toast('Enter the medicine name.');return false}
+  if(rec.price<=0){toast('Enter a sale price above 0.');return false}
+  if(rec.price<rec.cost&&!confirm('Sale price is lower than purchase price. You will sell at a loss. Save anyway?'))return false;
+  if(id){const m=S.meds.find(x=>x.id===id);if(!m)return false;Object.assign(m,rec)}
+  else{
+    const dup=S.meds.find(m=>m.name.toLowerCase()===rec.name.toLowerCase()&&(m.batch||'').toLowerCase()===rec.batch.toLowerCase());
+    if(dup&&!confirm(rec.name+' with this batch is already in stock. Add a separate entry anyway? (Use “Add stock” on the existing one to increase quantity.)'))return false;
+    S.meds.push(Object.assign({id:uid()},rec));
+  }
+  save();closeSheet();render();toast(id?'Medicine updated':'Medicine added');return false;
+}
+function openAddStock(id){
+  const m=S.meds.find(x=>x.id===id);if(!m)return;
+  openSheet(`<h3>Add stock</h3><div class="sub">${esc(m.name)}. Now in stock: ${qtyFmt(m.qty)}</div>
+  <form onsubmit="return saveAddStock(event,'${m.id}')">
+    <label class="field"><span>Quantity received *</span><input name="qty" class="num" inputmode="decimal" required autofocus></label>
+    <div class="row2"><label class="field"><span>Purchase price per unit</span><input name="cost" class="num" inputmode="decimal" value="${m.cost}"></label>
+    <label class="field"><span>Sale price per unit</span><input name="price" class="num" inputmode="decimal" value="${m.price}"></label></div>
+    <div class="row2"><label class="field"><span>Batch no.</span><input name="batch" value="${esc(m.batch||'')}"></label>
+    <label class="field"><span>Expiry date</span><input name="expiry" type="date" value="${esc(m.expiry||'')}"></label></div>
+    <button class="btn block" type="submit">Add to stock</button>
+  </form>`);
+}
+function saveAddStock(e,id){
+  e.preventDefault();const m=S.meds.find(x=>x.id===id);if(!m)return false;const f=new FormData(e.target);
+  const q=r3(num(f.get('qty')));if(q<=0){toast('Enter the quantity received.');return false}
+  m.qty=r3(Math.max(m.qty,0)+q);
+  if(str(f.get('cost')))m.cost=num(f.get('cost'));
+  if(str(f.get('price')))m.price=num(f.get('price'));
+  m.batch=str(f.get('batch'));m.expiry=str(f.get('expiry'));
+  save();closeSheet();render();toast('Added '+qtyFmt(q)+' to '+m.name);return false;
+}
+function deleteMed(id){
+  const m=S.meds.find(x=>x.id===id);if(!m)return;
+  if(!confirm('Delete '+m.name+' from stock? Past bills keep their record.'))return;
+  S.meds=S.meds.filter(x=>x.id!==id);save();closeSheet();render();toast('Medicine deleted');
+}
+
+/* ---------- profit / sales ---------- */
+const RANGES=[['today','Today'],['yesterday','Yesterday'],['week','Last 7 days'],['month','This month'],['lastmonth','Last month'],['all','All time']];
+function renderSales(v){
+  const [a,b]=rangeBounds(salesRange);const list=salesBetween(a,b).sort((x,y)=>y.ts-x.ts);
+  const total=sum(list,s=>s.total),profit=sum(list,s=>s.profit);
+  const margin=total?profit/total*100:0;
+  const multi=!['today','yesterday'].includes(salesRange);
+  const days={};list.forEach(s=>{const k=dkey(s.ts);(days[k]=days[k]||{ts:s.ts,sale:0,profit:0,bills:0});days[k].sale+=s.total;days[k].profit+=s.profit;days[k].bills++});
+  const dayRows=Object.keys(days).sort().reverse().map(k=>days[k]);
+  const top={};list.forEach(s=>s.items.forEach(i=>{const t=(top[i.name]=top[i.name]||{name:i.name,qty:0,profit:0});t.qty+=i.qty;t.profit+=(i.price-i.cost)*i.qty}));
+  const topList=Object.values(top).sort((x,y)=>y.qty-x.qty).slice(0,8);
+  v.innerHTML=`<div class="chips" role="group" aria-label="Period">${RANGES.map(([k,l])=>`<button class="chip" aria-pressed="${salesRange===k}" onclick="salesRange='${k}';render()">${l}</button>`).join('')}</div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="panel stat"><div class="k">Profit</div><div class="v num" style="color:var(--green)">${money(profit)}</div></div>
+    <div class="panel stat"><div class="k">Sale</div><div class="v num">${money(total)}</div></div>
+    <div class="panel stat"><div class="k">Bills</div><div class="v num">${list.length}</div></div>
+    <div class="panel stat"><div class="k">Profit margin</div><div class="v num">${margin.toFixed(1)}%</div></div>
+  </div>
+  ${multi&&dayRows.length?`<h2>Day by day</h2><div class="panel table-wrap"><table class="num"><thead><tr><th>Day</th><th>Bills</th><th>Sale</th><th>Profit</th></tr></thead><tbody>${dayRows.map(d=>`<tr><td>${fmtDay(d.ts)}</td><td>${d.bills}</td><td>${money(d.sale)}</td><td><b>${money(d.profit)}</b></td></tr>`).join('')}</tbody></table></div>`:''}
+  ${topList.length?`<h2>Top selling</h2><div class="panel table-wrap"><table class="num"><thead><tr><th>Medicine</th><th>Qty</th><th>Profit</th></tr></thead><tbody>${topList.map(t=>`<tr><td style="white-space:normal">${esc(t.name)}</td><td>${qtyFmt(t.qty)}</td><td>${money(t.profit)}</td></tr>`).join('')}</tbody></table></div>`:''}
+  <h2>Bills</h2>
+  ${list.length?list.map(billItem).join(''):'<p class="hint">No bills in this period.</p>'}`;
+}
+function openBill(id){
+  const s=S.sales.find(x=>x.id===id);if(!s)return;
+  openSheet(`<h3>Bill #${s.no}</h3><div class="sub">${fmtDay(s.ts)}, ${fmtTime(s.ts)}</div>
+  <div class="table-wrap"><table class="num"><thead><tr><th>Medicine</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>
+  ${s.items.map(i=>`<tr><td style="white-space:normal">${esc(i.name)}</td><td>${qtyFmt(i.qty)}</td><td>${money(i.price)}</td><td>${money(i.qty*i.price)}</td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="totals">
+    <div><span>Subtotal</span><b class="num">${money(s.sub)}</b></div>
+    ${s.discount?`<div><span>Discount</span><b class="num">− ${money(s.discount)}</b></div>`:''}
+    <div class="grand"><span>Total</span><span class="num">${money(s.total)}</span></div>
+    <div class="profit"><span>Profit</span><span class="num">${money(s.profit)}</span></div>
+  </div>
+  <button class="btn danger block" style="margin-top:16px" onclick="returnBill('${s.id}')">Return bill and put stock back</button>`);
+}
+function returnBill(id){
+  const s=S.sales.find(x=>x.id===id);if(!s)return;
+  if(!confirm('Return bill #'+s.no+'? The medicines go back into stock and this bill is removed from profit.'))return;
+  s.items.forEach(i=>{const m=S.meds.find(x=>x.id===i.medId);if(m)m.qty=r3(m.qty+i.qty)});
+  S.sales=S.sales.filter(x=>x.id!==id);save();closeSheet();render();toast('Bill #'+s.no+' returned');
+}
+
+/* ---------- more ---------- */
+function renderMore(v){
+  v.innerHTML=`<h2>Shop settings</h2>
+  <form class="panel" onsubmit="return saveSettings(event)">
+    <label class="field"><span>Shop name</span><input name="shop" value="${esc(S.settings.shop)}"></label>
+    <div class="row2"><label class="field"><span>Warn before expiry (days)</span><input name="expiryDays" class="num" inputmode="numeric" value="${S.settings.expiryDays}"></label>
+    <label class="field"><span>Default low stock level</span><input name="lowDefault" class="num" inputmode="decimal" value="${S.settings.lowDefault}"></label></div>
+    <button class="btn block" type="submit">Save settings</button>
+  </form>
+  <h2>Add medicines from Excel</h2>
+  <div class="panel">
+    <p style="margin:0">Upload an Excel (.xlsx) or CSV sheet. The first row must have headings like: Name, Formula, Company, Type, Batch, Expiry, Purchase price, Sale price, Qty, Min stock, Rack. Only Name is required.</p>
+    <p class="hint">If a medicine with the same name and batch is already in stock, the sheet's quantity is added to it. PDF files can't be read reliably; save them as Excel first.</p>
+    <div class="btns"><button class="btn" onclick="$('#importInput').click()">Choose Excel or CSV file</button><button class="btn ghost" onclick="downloadSample()">Download sample sheet</button></div>
+  </div>
+  <h2>Backup</h2>
+  <div class="panel">
+    <p style="margin:0">Your stock and sales are saved on this phone only. Download a backup every week so nothing is lost if the phone is reset.</p>
+    <div class="btns"><button class="btn" onclick="downloadBackup()">Download backup</button><button class="btn ghost" onclick="$('#restoreInput').click()">Restore backup</button></div>
+    <div class="btns"><button class="btn ghost" onclick="exportStock()">Export stock to Excel</button><button class="btn ghost" onclick="exportSales()">Export sales to Excel</button></div>
+    <p class="hint num" id="storageUse" style="margin-bottom:0"></p>
+  </div>
+  <h2>Delete everything</h2>
+  <div class="panel danger-zone">
+    <p style="margin:0">Removes all medicines, bills and settings from this phone.</p>
+    <button class="btn danger block" style="margin-top:12px" onclick="wipeAll()">Delete all data</button>
+  </div>`;
+  showStorage();
+}
+function saveSettings(e){
+  e.preventDefault();const f=new FormData(e.target);
+  S.settings.shop=str(f.get('shop'))||'My Medical Store';
+  S.settings.expiryDays=Math.max(1,Math.round(num(f.get('expiryDays'))||90));
+  S.settings.lowDefault=Math.max(0,num(f.get('lowDefault')));
+  save();render();toast('Settings saved');return false;
+}
+function wipeAll(){
+  const t=prompt('This deletes all stock and sales on this phone. Type DELETE to confirm.');
+  if(t!=='DELETE'){if(t!==null)toast('Nothing deleted.');return}
+  S=blank();cart=[];save();go('home');toast('All data deleted');
+}
+
+/* ---------- import ---------- */
+const COLS={
+  name:['name','medicine','medicine name','item','item name','product','product name'],
+  generic:['formula','generic','generic name','salt'],
+  company:['company','manufacturer','brand','mfg'],
+  type:['type','form','category'],
+  batch:['batch','batch no','batch number','lot'],
+  expiry:['expiry','expiry date','exp','exp date','expire'],
+  cost:['purchase price','cost','cost price','buy price','purchase','trade price','tp'],
+  price:['sale price','price','selling price','mrp','retail price','rp','sell price'],
+  qty:['qty','quantity','stock','units','in stock'],
+  min:['min stock','min','minimum','reorder level','alert level'],
+  rack:['rack','shelf','location']
+};
+function mapHeader(h){h=String(h).trim().toLowerCase().replace(/[_.]/g,' ').replace(/\s+/g,' ').trim();for(const k in COLS){if(COLS[k].includes(h))return k}return null}
+function parseCSV(t){
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+    else if(ch==='"')q=true;
+    else if(ch===','){row.push(f);f=''}
+    else if(ch==='\n'){row.push(f);rows.push(row);row=[];f=''}
+    else if(ch!=='\r')f+=ch;
+  }
+  if(f!==''||row.length){row.push(f);rows.push(row)}
+  return rows;
+}
+function readFileRows(file){
+  return new Promise((res,rej)=>{
+    const name=file.name.toLowerCase();const r=new FileReader();r.onerror=()=>rej(new Error('Could not read that file.'));
+    if(name.endsWith('.csv')||name.endsWith('.txt')){r.onload=()=>res(parseCSV(String(r.result).replace(/^\uFEFF/,'')));r.readAsText(file)}
+    else{
+      if(typeof XLSX==='undefined'){rej(new Error('The Excel reader has not loaded. Reload the app, or save the sheet as CSV.'));return}
+      r.onload=()=>{try{const wb=XLSX.read(new Uint8Array(r.result),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];res(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''}))}catch(e){rej(new Error('Could not read that Excel file.'))}};
+      r.readAsArrayBuffer(file);
+    }
+  });
+}
+function ymd(y,mo,d){y=+y;mo=+mo;d=+d;if(!(mo>=1&&mo<=12&&d>=1&&d<=31&&y>1900))return '';return y+'-'+pad(mo)+'-'+pad(d)}
+function lastDay(y,mo){if(!(mo>=1&&mo<=12))return '';return ymd(y,mo,new Date(y,mo,0).getDate())}
+function parseDate(v){
+  if(v===undefined||v===null||v==='')return '';
+  if(v instanceof Date){if(isNaN(v))return '';return dkey(v.getTime()+12*3600000)}
+  if(typeof v==='number'){if(v>20000&&v<90000){const d=new Date(Math.round((v-25569)*DAY));return ymd(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate())}return ''}
+  const s=String(v).trim();let m;
+  if((m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/)))return ymd(m[1],m[2],m[3]);
+  if((m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/))){let y=+m[3];if(y<100)y+=2000;return ymd(y,m[2],m[1])}
+  if((m=s.match(/^(\d{1,2})[-/.](\d{2,4})$/))){let y=+m[2];if(y<100)y+=2000;return lastDay(y,+m[1])}
+  const months=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  if((m=s.toLowerCase().match(/^([a-z]{3})[a-z]*[\s\-/.,']*(\d{2,4})$/))){const mi=months.indexOf(m[1]);if(mi>=0){let y=+m[2];if(y<100)y+=2000;return lastDay(y,mi+1)}}
+  const t=Date.parse(s);return isNaN(t)?'':dkey(t);
+}
+async function importFile(input){
+  const file=input.files[0];input.value='';if(!file)return;
+  if(file.name.toLowerCase().endsWith('.pdf')){toast('PDF can’t be read reliably. Save it as Excel or CSV first.');return}
+  try{
+    const rows=(await readFileRows(file)).filter(r=>Array.isArray(r)&&r.some(c=>String(c).trim()!==''));
+    if(rows.length<2){toast('The sheet has no medicine rows.');return}
+    const map=rows[0].map(mapHeader);
+    if(!map.includes('name')){toast('No “Name” column found. Use the headings from the sample sheet.');return}
+    let added=0,updated=0,skipped=0;
+    for(const r of rows.slice(1)){
+      const o={};map.forEach((k,i)=>{if(k&&o[k]===undefined)o[k]=r[i]});
+      const name=str(o.name);if(!name){skipped++;continue}
+      const rec={name,generic:str(o.generic),company:str(o.company),type:str(o.type)||'Tablet',batch:str(o.batch),expiry:parseDate(o.expiry),cost:num(o.cost),price:num(o.price),qty:r3(num(o.qty)),min:str(o.min)!==''?num(o.min):S.settings.lowDefault,rack:str(o.rack)};
+      if(!rec.price&&rec.cost)rec.price=rec.cost;
+      const ex=S.meds.find(m=>m.name.toLowerCase()===name.toLowerCase()&&(m.batch||'').toLowerCase()===rec.batch.toLowerCase());
+      if(ex){
+        ex.qty=r3(Math.max(ex.qty,0)+rec.qty);
+        ['generic','company','expiry','rack'].forEach(k=>{if(rec[k])ex[k]=rec[k]});
+        if(str(o.type))ex.type=rec.type;if(rec.cost)ex.cost=rec.cost;if(rec.price)ex.price=rec.price;
+        updated++;
+      }else{S.meds.push(Object.assign({id:uid()},rec));added++}
+    }
+    save();render();
+    toast(`Imported: ${added} new, ${updated} updated${skipped?`, ${skipped} rows skipped (no name)`:''}.`);
+  }catch(e){toast(e.message||'Could not read that file.')}
+}
+
+/* ---------- files out ---------- */
+async function saveFile(filename,data){
+  if(window.claude&&typeof window.claude.use==='function'){
+    let d=null;try{d=await window.claude.use('downloads')}catch(e){}
+    if(d){
+      try{await d.save({filename,data});toast('Saved '+filename)}
+      catch(e){
+        if(e&&e.code==='declined')return;
+        if(e&&e.code==='rate_limited'){toast('A save is already waiting for your answer.');return}
+        toast('This file could not be saved here.');
+      }
+      return;
+    }
+    toast('Saving files is not available in this view.');return;
+  }
+  const blob=data instanceof Blob?data:new Blob([data],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);toast('Saved '+filename);
+}
+function toCSV(rows){return rows.map(r=>r.map(c=>{const s=String(c??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(',')).join('\n')}
+function saveSheet(base,rows){
+  if(typeof XLSX!=='undefined'){
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Sheet1');
+    const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});return saveFile(base+'.xlsx',new Blob([out]));
+  }
+  return saveFile(base+'.csv','\uFEFF'+toCSV(rows));
+}
+function downloadSample(){
+  saveFile('medicine-stock-sample.csv','\uFEFF'+toCSV([
+    ['Name','Formula','Company','Type','Batch','Expiry','Purchase price','Sale price','Qty','Min stock','Rack'],
+    ['Panadol 500mg','Paracetamol','GSK','Tablet','PN2401','2027-06-30','1.6','2','500','100','A1'],
+    ['Augmentin 625mg','Amoxicillin + Clavulanic acid','GSK','Tablet','AG118','2026-12-31','38','45','60','20','B3'],
+    ['Hydryllin Syrup','Diphenhydramine','Searle','Syrup','HY77','2027-03-31','95','115','24','6','C2']
+  ]));
+}
+function exportStock(){
+  const rows=[['Name','Formula','Company','Type','Batch','Expiry','Purchase price','Sale price','Qty','Min stock','Rack','Stock value (purchase)','Stock value (sale)']];
+  [...S.meds].sort(byName).forEach(m=>rows.push([m.name,m.generic,m.company,m.type,m.batch,m.expiry,m.cost,m.price,m.qty,minOf(m),m.rack,r3(Math.max(m.qty,0)*m.cost),r3(Math.max(m.qty,0)*m.price)]));
+  saveSheet('stock-'+dkey(Date.now()),rows);
+}
+function exportSales(){
+  const rows=[['Bill no','Date','Time','Medicine','Qty','Sale price','Purchase price','Amount','Profit','Bill discount','Bill total','Bill profit']];
+  [...S.sales].sort((a,b)=>a.ts-b.ts).forEach(s=>s.items.forEach((i,n)=>rows.push([s.no,dkey(s.ts),fmtTime(s.ts),i.name,i.qty,i.price,i.cost,r3(i.qty*i.price),r3((i.price-i.cost)*i.qty),n?'':s.discount,n?'':r3(s.total),n?'':r3(s.profit)])));
+  if(rows.length<2){toast('No sales to export yet.');return}
+  saveSheet('sales-'+dkey(Date.now()),rows);
+}
+function downloadBackup(){saveFile('medical-store-backup-'+dkey(Date.now())+'.json',JSON.stringify(S))}
+function restoreBackup(input){
+  const file=input.files[0];input.value='';if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(String(r.result));
+      if(!d||!Array.isArray(d.meds)||!Array.isArray(d.sales))throw new Error();
+      if(!confirm(`Replace everything on this phone with this backup? It has ${d.meds.length} medicines and ${d.sales.length} bills.`))return;
+      const b=blank();S={meds:d.meds,sales:d.sales,billNo:d.billNo||d.sales.reduce((mx,s)=>Math.max(mx,s.no||0),0),settings:Object.assign(b.settings,d.settings||{})};
+      cart=[];save();go('home');toast('Backup restored');
+    }catch(e){toast('That file is not a backup from this app.')}
+  };
+  r.readAsText(file);
+}
+
+/* ---------- sheet ---------- */
+function openSheet(html){
+  $('#sheetBody').innerHTML=html;$('#backdrop').classList.add('open');
+  const s=$('#sheet');s.classList.add('open');s.setAttribute('aria-hidden','false');s.scrollTop=0;
+  setTimeout(()=>{const f=s.querySelector('[autofocus]');if(f)f.focus()},240);
+}
+function closeSheet(){$('#backdrop').classList.remove('open');const s=$('#sheet');s.classList.remove('open');s.setAttribute('aria-hidden','true')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+
+render();init();
+</script>
+</body>
+</html>
